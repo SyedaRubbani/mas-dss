@@ -1,31 +1,24 @@
 """
 Multi-Agent Decision Support System (MAS-DSS)
-=============================================
-A cognitive multi-agent system for organizational decision support.
-Agents: Interpreter → Retriever → Ideation → Evaluator → Synthesizer
 """
 
 import json
 import os
+import re
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from openai import OpenAI
 
-# ── Configuration ─────────────────────────────────────────────────────────────
-# Key is loaded from environment variable (set in Render dashboard)
 _api_key = os.environ.get("OPENAI_API_KEY", "")
-
 if not _api_key:
-    print("WARNING: OPENAI_API_KEY not set. Set it in Render environment variables.")
+    print("WARNING: OPENAI_API_KEY not set.")
 
 client = OpenAI(api_key=_api_key) if _api_key else None
 MODEL = "gpt-4o"
-
 app = FastAPI(title="MAS Decision Support System", version="1.0.0")
 
-# ── Domain Configurations ─────────────────────────────────────────────────────
 DOMAIN_CONTEXTS = {
     "healthcare": {
         "label": "Healthcare",
@@ -53,24 +46,17 @@ DOMAIN_CONTEXTS = {
     }
 }
 
-# ── Request Models ────────────────────────────────────────────────────────────
 class ProblemRequest(BaseModel):
     problem_statement: str
     domain: str = "healthcare"
     organization_context: Optional[str] = ""
     constraints: Optional[str] = ""
 
-# ── Agent Prompts ─────────────────────────────────────────────────────────────
 def get_interpreter_prompt(domain):
     ctx = DOMAIN_CONTEXTS.get(domain, DOMAIN_CONTEXTS["healthcare"])
     return f"""You are the Interpreter Agent in a Multi-Agent Decision Support System.
 Your role: Analyze the problem statement and structure it into a precise problem packet.
 Domain context: {ctx['context']}
-FRAMEWORK — Structure the problem using this schema:
-1. UNDESIRED STATE: Observable conditions, measurable indicators, affected entities
-2. CAUSAL FACTORS: Present causes (shouldn't exist), Absent causes (should exist)
-3. DESIRED STATE: Target condition, success criteria, constraints
-4. PROBLEM CLASSIFICATION: Problem type, urgency, complexity, primary stakeholders
 Return ONLY valid JSON:
 {{
   "undesired_state": {{"summary": "one sentence","observable_conditions": ["..."],"measurable_indicators": ["..."],"affected_entities": ["..."]}},
@@ -104,7 +90,6 @@ def get_ideation_prompt(domain):
 Your role: Generate 6-8 creative, diverse, actionable solution ideas.
 Domain context: {ctx['context']}
 Solution types: {ctx['solution_types']}
-Use causal surgery, analogical thinking, and constraint flips.
 Return ONLY valid JSON:
 {{
   "ideas": [
@@ -132,7 +117,7 @@ Your role: Evaluate each idea across 11 dimensions and produce a ranked scorecar
 Domain context: {ctx['context']}
 KPIs: {ctx['kpi_examples']}
 Score each 0-100. Weights: efficacy:0.20, feasibility:0.15, financial:0.12, desirability:0.10, equity:0.08, risk:0.10, scalability:0.07, time_to_impact:0.05, creativity_novelty:0.05, creativity_non_obviousness:0.04, creativity_value:0.04
-Return ONLY valid JSON:
+IMPORTANT: Return ONLY valid JSON with no trailing commas.
 {{
   "evaluations": [
     {{
@@ -190,7 +175,14 @@ Return ONLY valid JSON:
   "next_steps": [{{"action": "...","owner_role": "...","timeline": "...","priority": "high/medium/low"}}]
 }}"""
 
-# ── Agent Runner ──────────────────────────────────────────────────────────────
+def repair_json(content):
+    """Attempt to repair common JSON issues."""
+    content = content.strip()
+    content = content[content.find("{"):content.rfind("}")+1]
+    content = re.sub(r',\s*}', '}', content)
+    content = re.sub(r',\s*]', ']', content)
+    return content
+
 def run_agent(system_prompt, user_message, agent_name):
     if not client:
         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured on server.")
@@ -207,15 +199,19 @@ def run_agent(system_prompt, user_message, agent_name):
         )
         content = response.choices[0].message.content
         tokens = response.usage.total_tokens
-        content = content.strip()
-        content = content[content.find("{"):content.rfind("}")+1]
+        content = repair_json(content)
         return json.loads(content), tokens
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"{agent_name} returned invalid JSON: {str(e)}")
+    except json.JSONDecodeError:
+        # Second attempt with more aggressive repair
+        try:
+            content = repair_json(content)
+            content = re.sub(r'[\x00-\x1f\x7f]', '', content)
+            return json.loads(content), tokens
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"{agent_name} returned invalid JSON: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{agent_name} failed: {str(e)}")
 
-# ── Pipeline ──────────────────────────────────────────────────────────────────
 @app.post("/api/analyze")
 async def analyze_problem(request: ProblemRequest):
     domain = request.domain if request.domain in DOMAIN_CONTEXTS else "healthcare"
@@ -255,7 +251,6 @@ async def analyze_problem(request: ProblemRequest):
     results["estimated_cost_usd"] = round(results["total_tokens"] * 0.000005, 4)
     return results
 
-# ── Health ────────────────────────────────────────────────────────────────────
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "model": MODEL}
@@ -264,7 +259,6 @@ async def health():
 async def get_domains():
     return {k: v["label"] for k, v in DOMAIN_CONTEXTS.items()}
 
-# ── Frontend ──────────────────────────────────────────────────────────────────
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     with open("static/index.html", "r", encoding="utf-8") as f:
