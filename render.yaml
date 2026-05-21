@@ -2,6 +2,7 @@ services:
   - type: web
     name: mas-dss
     runtime: python
+    pythonVersion: "3.11.8"
     buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     envVars:
