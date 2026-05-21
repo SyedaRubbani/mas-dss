@@ -1,0 +1,1348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAS · Decision Support System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0f1117;
+  --ink-soft: #3d4251;
+  --ink-muted: #7b8096;
+  --paper: #f8f7f4;
+  --paper-warm: #f0ede6;
+  --rule: #e2ddd6;
+  --accent: #1a6b5a;
+  --accent-light: #e8f4f1;
+  --accent-glow: rgba(26,107,90,0.12);
+  --amber: #c45d00;
+  --amber-light: #fef3e8;
+  --blue: #1e4d8c;
+  --blue-light: #eef3fb;
+  --danger: #a32d2d;
+  --agent-1: #1a6b5a;
+  --agent-2: #1e4d8c;
+  --agent-3: #6b3a8a;
+  --agent-4: #c45d00;
+  --agent-5: #2d7a3a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* ── LAYOUT ────────────────────────────────────────────────── */
+.app { display: grid; grid-template-columns: 340px 1fr; min-height: 100vh; }
+
+/* ── SIDEBAR ───────────────────────────────────────────────── */
+.sidebar {
+  background: var(--ink);
+  color: white;
+  padding: 36px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  padding-bottom: 28px;
+}
+
+.logo-mark {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.logo-text h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: white;
+  line-height: 1.2;
+}
+
+.logo-text p {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ── FORM SECTION ──────────────────────────────────────────── */
+.form-section label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 8px;
+}
+
+.form-section + .form-section { margin-top: 0; }
+
+.domain-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.domain-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.7);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 9px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.domain-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+.domain-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+textarea, input[type="text"] {
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  padding: 12px 14px;
+  resize: vertical;
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+textarea::placeholder, input::placeholder { color: rgba(255,255,255,0.25); }
+textarea:focus, input:focus { border-color: var(--accent); }
+
+#problem-input { min-height: 130px; }
+#org-context { min-height: 60px; }
+#constraints { min-height: 50px; }
+
+.run-btn {
+  width: 100%;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  letter-spacing: 0.02em;
+}
+
+.run-btn:hover:not(:disabled) { background: #155c4c; transform: translateY(-1px); }
+.run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.run-btn .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+
+.run-btn.loading .spinner { display: block; }
+.run-btn.loading .btn-label { display: none; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── AGENT PIPELINE STATUS ─────────────────────────────────── */
+.pipeline {
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding-top: 20px;
+}
+
+.pipeline h3 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 14px;
+}
+
+.agent-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.agent-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  flex-shrink: 0;
+  transition: all 0.3s;
+}
+
+.agent-step.active .agent-dot {
+  background: #f0c040;
+  box-shadow: 0 0 8px rgba(240,192,64,0.6);
+  animation: pulse-dot 1s ease infinite;
+}
+
+.agent-step.done .agent-dot { background: var(--accent); }
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+}
+
+.agent-step-label {
+  font-size: 12px;
+  color: rgba(255,255,255,0.45);
+  transition: color 0.3s;
+}
+
+.agent-step.active .agent-step-label { color: white; font-weight: 500; }
+.agent-step.done .agent-step-label { color: rgba(255,255,255,0.65); }
+
+.agent-step-tag {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 0.05em;
+}
+
+/* Cost tracker */
+.cost-tracker {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+}
+
+.cost-tracker span { font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.7); }
+
+/* ── MAIN CONTENT ──────────────────────────────────────────── */
+.main {
+  padding: 40px 48px;
+  overflow-y: auto;
+  max-height: 100vh;
+}
+
+/* ── EMPTY STATE ───────────────────────────────────────────── */
+.empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+  color: var(--ink-muted);
+  padding: 80px 40px;
+}
+
+.empty-icon {
+  width: 64px; height: 64px;
+  background: var(--paper-warm);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.empty-state h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.empty-state p { font-size: 15px; max-width: 380px; line-height: 1.6; }
+
+.empty-examples { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.example-chip {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+}
+
+.example-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+/* ── REPORT ────────────────────────────────────────────────── */
+.report { display: flex; flex-direction: column; gap: 0; }
+
+.report-header {
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid var(--ink);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.report-header h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  font-weight: 400;
+  max-width: 600px;
+  line-height: 1.2;
+}
+
+.report-meta {
+  text-align: right;
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.report-meta strong { color: var(--ink); font-weight: 600; }
+
+/* ── EXEC SUMMARY ──────────────────────────────────────────── */
+.exec-summary {
+  background: var(--ink);
+  color: white;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 32px;
+}
+
+.exec-summary h3 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 14px;
+}
+
+.exec-summary p {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.65;
+  color: rgba(255,255,255,0.92);
+}
+
+/* ── SECTIONS ──────────────────────────────────────────────── */
+.section {
+  margin-bottom: 40px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.section h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  font-weight: 400;
+  margin-bottom: 16px;
+  color: var(--ink);
+}
+
+/* ── AGENT CARDS (PROBLEM ANALYSIS) ───────────────────────── */
+.analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.analysis-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.analysis-card.full { grid-column: 1/-1; }
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.agent-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.badge-interpreter { background: rgba(26,107,90,0.12); color: var(--agent-1); }
+.badge-retriever { background: rgba(30,77,140,0.12); color: var(--agent-2); }
+
+.analysis-card h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.tag {
+  background: var(--paper-warm);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 4px 10px;
+}
+
+.tag.cause-present { background: rgba(163,45,45,0.06); border-color: rgba(163,45,45,0.2); color: var(--danger); }
+.tag.cause-absent { background: rgba(30,77,140,0.06); border-color: rgba(30,77,140,0.2); color: var(--blue); }
+
+/* ── RECOMMENDATIONS ───────────────────────────────────────── */
+.rec-cards { display: flex; flex-direction: column; gap: 20px; }
+
+.rec-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.rec-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+
+.rec-card.rank-1 { border-left: 4px solid var(--accent); }
+.rec-card.rank-2 { border-left: 4px solid var(--blue); }
+.rec-card.rank-3 { border-left: 4px solid var(--amber); }
+
+.rec-header {
+  padding: 20px 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.rec-rank {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.rec-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.rec-score-badge {
+  flex-shrink: 0;
+  text-align: center;
+  background: var(--paper-warm);
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+.rec-score-badge .score-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  display: block;
+}
+
+.rec-score-badge .score-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+
+.rec-body {
+  padding: 0 24px 24px;
+  display: none;
+}
+
+.rec-body.open { display: block; }
+
+.rec-why {
+  background: var(--accent-light);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-bottom: 20px;
+  border-left: 3px solid var(--accent);
+}
+
+.roadmap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+
+.roadmap-phase {
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.roadmap-phase h5 {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.roadmap-phase ul { list-style: none; }
+.roadmap-phase li {
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 3px 0;
+  padding-left: 12px;
+  position: relative;
+}
+
+.roadmap-phase li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--ink-muted);
+  font-size: 10px;
+}
+
+.risks-table { width: 100%; border-collapse: collapse; }
+.risks-table th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.risks-table td {
+  font-size: 12px;
+  color: var(--ink-soft);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--paper-warm);
+  vertical-align: top;
+}
+
+/* ── SCORE RADAR ───────────────────────────────────────────── */
+.score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+.score-item {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.score-item-label {
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.score-bar-wrap {
+  height: 4px;
+  background: var(--rule);
+  border-radius: 2px;
+  margin-bottom: 4px;
+  overflow: hidden;
+}
+
+.score-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.8s ease;
+}
+
+.score-bar.low { background: var(--danger); }
+.score-bar.mid { background: var(--amber); }
+
+.score-item-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--ink);
+}
+
+/* ── METRICS ───────────────────────────────────────────────── */
+.metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+.metric-card {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.metric-card h4 { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+
+.metric-card .target {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.metric-card .cadence {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+/* ── NEXT STEPS ────────────────────────────────────────────── */
+.steps-list { display: flex; flex-direction: column; gap: 8px; }
+
+.step-item {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.step-num {
+  width: 24px; height: 24px;
+  background: var(--ink);
+  border-radius: 50%;
+  color: white;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-action { font-size: 13px; color: var(--ink-soft); line-height: 1.4; }
+.step-action strong { color: var(--ink); }
+
+.step-meta { text-align: right; }
+
+.step-owner {
+  font-size: 10px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.step-timeline {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.priority-pill {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.priority-high { background: rgba(163,45,45,0.1); color: var(--danger); }
+.priority-medium { background: var(--amber-light); color: var(--amber); }
+.priority-low { background: var(--accent-light); color: var(--accent); }
+
+/* ── HUMAN DECISIONS ───────────────────────────────────────── */
+.decisions-list { display: flex; flex-direction: column; gap: 8px; }
+
+.decision-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(196,93,0,0.04);
+  border: 1px solid rgba(196,93,0,0.15);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.decision-icon { color: var(--amber); font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── EXPORT BTN ────────────────────────────────────────────── */
+.export-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.export-btn {
+  background: white;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.export-btn:hover { border-color: var(--ink); color: var(--ink); }
+
+/* ── ERROR STATE ───────────────────────────────────────────── */
+.error-box {
+  background: rgba(163,45,45,0.06);
+  border: 1px solid rgba(163,45,45,0.25);
+  border-radius: 10px;
+  padding: 24px;
+  color: var(--danger);
+  font-size: 14px;
+}
+
+.error-box h3 { font-size: 16px; margin-bottom: 8px; font-weight: 600; }
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; }
+  .main { max-height: none; padding: 24px 20px; }
+  .analysis-grid, .roadmap-grid, .score-grid, .metrics-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ── SIDEBAR ──────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">MAS</div>
+      <div class="logo-text">
+        <h1>Decision Support</h1>
+        <p>Multi-Agent System</p>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label>Domain</label>
+      <div class="domain-grid" id="domain-grid">
+        <button class="domain-btn active" data-domain="healthcare">Healthcare</button>
+        <button class="domain-btn" data-domain="food_systems">Food Systems</button>
+        <button class="domain-btn" data-domain="urban_planning">Urban Planning</button>
+        <button class="domain-btn" data-domain="business_strategy">Business Strategy</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label>Problem Statement</label>
+      <textarea id="problem-input" placeholder="Describe the problem your organization is facing. Be specific about what is happening that shouldn't be, or what should be happening but isn't..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label>Organization Context <span style="opacity:0.4;font-weight:400">(optional)</span></label>
+      <textarea id="org-context" placeholder="e.g. 200-bed regional hospital, limited IT budget, rural setting..."></textarea>
+    </div>
+
+    <div class="form-section">
+      <label>Key Constraints <span style="opacity:0.4;font-weight:400">(optional)</span></label>
+      <textarea id="constraints" placeholder="e.g. Budget under $500k, must comply with state regulations, 6-month timeline..."></textarea>
+    </div>
+
+    <button class="run-btn" id="run-btn" onclick="runAnalysis()">
+      <div class="spinner"></div>
+      <span class="btn-label">▶ &nbsp;Run Analysis</span>
+    </button>
+
+    <div class="pipeline" id="pipeline">
+      <h3>Agent Pipeline</h3>
+      <div class="agent-step" id="step-interpreter">
+        <div class="agent-dot"></div>
+        <div class="agent-step-label">Interpreter</div>
+        <div class="agent-step-tag">01</div>
+      </div>
+      <div class="agent-step" id="step-retriever">
+        <div class="agent-dot"></div>
+        <div class="agent-step-label">Retriever</div>
+        <div class="agent-step-tag">02</div>
+      </div>
+      <div class="agent-step" id="step-ideation">
+        <div class="agent-dot"></div>
+        <div class="agent-step-label">Ideation</div>
+        <div class="agent-step-tag">03</div>
+      </div>
+      <div class="agent-step" id="step-evaluator">
+        <div class="agent-dot"></div>
+        <div class="agent-step-label">Evaluator</div>
+        <div class="agent-step-tag">04</div>
+      </div>
+      <div class="agent-step" id="step-synthesizer">
+        <div class="agent-dot"></div>
+        <div class="agent-step-label">Synthesizer</div>
+        <div class="agent-step-tag">05</div>
+      </div>
+    </div>
+
+    <div class="cost-tracker">
+      <span>Est. cost</span>
+      <span id="cost-display">—</span>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ──────────────────────────────────────── -->
+  <main class="main" id="main-content">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">🧠</div>
+      <h2>Ready to Analyze</h2>
+      <p>Describe your organizational problem and let five specialized AI agents structure, research, ideate, evaluate, and synthesize solutions.</p>
+      <div class="empty-examples">
+        <button class="example-chip" onclick="loadExample('healthcare')">
+          🏥 High patient readmission rates in cardiology unit
+        </button>
+        <button class="example-chip" onclick="loadExample('food_systems')">
+          🌾 Smallholder farmers unable to access fair markets
+        </button>
+        <button class="example-chip" onclick="loadExample('urban_planning')">
+          🏙️ Rising urban homelessness despite housing investment
+        </button>
+        <button class="example-chip" onclick="loadExample('business_strategy')">
+          📉 Declining customer retention in B2B SaaS product
+        </button>
+      </div>
+    </div>
+    <div id="report-container" style="display:none"></div>
+  </main>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let selectedDomain = 'healthcare';
+let currentData = null;
+
+// ── Domain Selection ───────────────────────────────────────────────────
+document.querySelectorAll('.domain-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.domain-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedDomain = btn.dataset.domain;
+  });
+});
+
+// ── Example Problems ───────────────────────────────────────────────────
+const examples = {
+  healthcare: {
+    domain: 'healthcare',
+    problem: 'Our cardiology unit has a 28% 30-day readmission rate, significantly above the national benchmark of 18%. Patients are being discharged without adequate understanding of their medication regimens, and follow-up appointment adherence is below 40%. This is costing the hospital approximately $2.3M annually in penalties and additional care costs.',
+    context: '350-bed regional hospital, semi-urban setting, serves a high proportion of Medicare/Medicaid patients, limited care coordination staff',
+    constraints: 'Budget cap of $400k for intervention, must show measurable improvement within 12 months, cannot add more than 2 FTE staff'
+  },
+  food_systems: {
+    domain: 'food_systems',
+    problem: 'Smallholder farmers in our region produce high-quality vegetables but receive only 15-20% of the final retail price due to exploitative intermediary chains. Over 40% report being unable to reinvest in their land, leading to declining yields and rural poverty.',
+    context: 'NGO operating in East Africa, working with 8,000 smallholder farmers across 3 districts',
+    constraints: 'Grant funding of $750k available, 3-year program window, technology solutions must work with low internet connectivity'
+  },
+  urban_planning: {
+    domain: 'urban_planning',
+    problem: 'Despite $50M invested in affordable housing over 5 years, our city\'s homeless population has increased by 22%. Existing shelter capacity is at 140% utilization, and individuals with mental health conditions and substance use disorders are cycling repeatedly through emergency services rather than achieving stable housing.',
+    context: 'City of 280,000 residents, progressive municipal government, existing network of NGO service providers',
+    constraints: 'Political pressure for visible results within 18 months, cannot displace existing shelter infrastructure, must integrate with county health services'
+  },
+  business_strategy: {
+    domain: 'business_strategy',
+    problem: 'Our B2B SaaS platform is experiencing 35% annual churn, up from 18% two years ago. Exit interviews indicate customers feel the product has not evolved to meet their growing needs, and competitor features are cited in 60% of cancellations. NPS has dropped from +42 to +11 over 18 months.',
+    context: 'Series B startup, 180 employees, $8M ARR, enterprise segment growing but SMB churning heavily',
+    constraints: 'Engineering team capacity is constrained for next two quarters, cannot reduce pricing, board expects churn below 25% within 12 months'
+  }
+};
+
+function loadExample(domain) {
+  const ex = examples[domain];
+  selectedDomain = ex.domain;
+  document.querySelectorAll('.domain-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-domain="${domain}"]`).classList.add('active');
+  document.getElementById('problem-input').value = ex.problem;
+  document.getElementById('org-context').value = ex.context;
+  document.getElementById('constraints').value = ex.constraints;
+}
+
+// ── Pipeline Status ────────────────────────────────────────────────────
+const agentSteps = ['interpreter','retriever','ideation','evaluator','synthesizer'];
+
+function setAgentStatus(agent, status) {
+  // status: 'active' | 'done' | 'idle'
+  const el = document.getElementById(`step-${agent}`);
+  if (!el) return;
+  el.classList.remove('active','done');
+  if (status !== 'idle') el.classList.add(status);
+}
+
+function resetPipeline() {
+  agentSteps.forEach(a => setAgentStatus(a, 'idle'));
+}
+
+// ── Main Analysis ──────────────────────────────────────────────────────
+async function runAnalysis() {
+  const problem = document.getElementById('problem-input').value.trim();
+  if (!problem) {
+    alert('Please enter a problem statement.');
+    return;
+  }
+
+  const btn = document.getElementById('run-btn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  resetPipeline();
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('report-container').style.display = 'none';
+  document.getElementById('cost-display').textContent = '…';
+
+  // Simulate progressive agent activation
+  // (Real streaming would require SSE; this simulates the experience)
+  const agentTimings = [500, 8000, 16000, 24000, 32000];
+  agentTimings.forEach((delay, i) => {
+    setTimeout(() => {
+      if (i > 0) setAgentStatus(agentSteps[i-1], 'done');
+      setAgentStatus(agentSteps[i], 'active');
+    }, delay);
+  });
+
+  try {
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        problem_statement: problem,
+        domain: selectedDomain,
+        organization_context: document.getElementById('org-context').value,
+        constraints: document.getElementById('constraints').value
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Analysis failed');
+    }
+
+    const data = await response.json();
+    currentData = data;
+
+    // Mark all done
+    agentSteps.forEach(a => setAgentStatus(a, 'done'));
+    document.getElementById('cost-display').textContent = `$${data.estimated_cost_usd}`;
+
+    renderReport(data, problem);
+
+  } catch (err) {
+    agentSteps.forEach(a => setAgentStatus(a, 'idle'));
+    document.getElementById('report-container').innerHTML = `
+      <div class="error-box">
+        <h3>Analysis Failed</h3>
+        <p>${err.message}</p>
+        <p style="margin-top:8px;font-size:12px;opacity:0.7">Check that your OPENAI_API_KEY is set correctly and try again.</p>
+      </div>`;
+    document.getElementById('report-container').style.display = 'block';
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ── Render Report ──────────────────────────────────────────────────────
+function renderReport(data, originalProblem) {
+  const s = data.synthesizer || {};
+  const interp = data.interpreter || {};
+  const retriev = data.retriever || {};
+  const ideas = data.ideation?.ideas || [];
+  const evals = data.evaluator?.evaluations || [];
+  const domainLabel = {healthcare:'Healthcare',food_systems:'Food Systems',urban_planning:'Urban Planning',business_strategy:'Business Strategy'}[data.domain] || data.domain;
+
+  const container = document.getElementById('report-container');
+  container.style.display = 'block';
+
+  container.innerHTML = `
+    <div class="report">
+
+      <!-- Header -->
+      <div class="report-header">
+        <div>
+          <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">${domainLabel} · Decision Support Report</div>
+          <h2>${interp.undesired_state?.summary || originalProblem.substring(0,80)+'…'}</h2>
+        </div>
+        <div class="report-meta">
+          <div>${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div>
+          <div><strong>${evals.length}</strong> ideas evaluated</div>
+          <div><strong>${data.total_tokens?.toLocaleString()}</strong> tokens</div>
+        </div>
+      </div>
+
+      <!-- Export -->
+      <div class="export-bar">
+        <button class="export-btn" onclick="exportJSON()">↓ Export JSON</button>
+        <button class="export-btn" onclick="window.print()">⎙ Print Report</button>
+      </div>
+
+      <!-- Executive Summary -->
+      <div class="exec-summary">
+        <h3>Executive Summary</h3>
+        <p>${s.executive_summary || 'Analysis complete.'}</p>
+      </div>
+
+      <!-- Problem Analysis -->
+      ${renderProblemAnalysis(interp, retriev)}
+
+      <!-- Top Recommendations -->
+      ${renderRecommendations(s.top_recommendations || [], evals)}
+
+      <!-- Success Metrics -->
+      ${renderMetrics(s.success_metrics || [])}
+
+      <!-- Implementation Timeline -->
+      ${renderTimeline(s.implementation_timeline || {})}
+
+      <!-- Next Steps -->
+      ${renderNextSteps(s.next_steps || [])}
+
+      <!-- Human Decisions -->
+      ${renderDecisions(s.human_decisions_required || [])}
+
+    </div>
+  `;
+
+  // Animate score bars
+  setTimeout(() => {
+    document.querySelectorAll('.score-bar').forEach(bar => {
+      const w = bar.dataset.width;
+      bar.style.width = w + '%';
+    });
+  }, 100);
+
+  // Open first rec by default
+  const firstBody = container.querySelector('.rec-body');
+  if (firstBody) firstBody.classList.add('open');
+
+  container.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderProblemAnalysis(interp, retriev) {
+  const ud = interp.undesired_state || {};
+  const causes = interp.causal_factors || {};
+  const desired = interp.desired_state || {};
+  const cls = interp.classification || {};
+  const kb = retriev.knowledge_base || {};
+
+  return `
+  <div class="section">
+    <div class="section-label">Problem Analysis</div>
+    <div class="analysis-grid">
+
+      <div class="analysis-card">
+        <div class="card-head"><span class="agent-badge badge-interpreter">Interpreter</span></div>
+        <h4>Undesired State</h4>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px">${ud.summary || ''}</p>
+        <div class="tag-list">${(ud.measurable_indicators||[]).map(i=>`<span class="tag">${i}</span>`).join('')}</div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="card-head"><span class="agent-badge badge-interpreter">Interpreter</span></div>
+        <h4>Causal Factors</h4>
+        <div style="margin-bottom:8px">
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px">Present (shouldn't be)</div>
+          <div class="tag-list">${(causes.present_causes||[]).map(c=>`<span class="tag cause-present">${c}</span>`).join('')}</div>
+        </div>
+        <div>
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-muted);margin-bottom:6px">Absent (should be)</div>
+          <div class="tag-list">${(causes.absent_causes||[]).map(c=>`<span class="tag cause-absent">${c}</span>`).join('')}</div>
+        </div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="card-head"><span class="agent-badge badge-interpreter">Interpreter</span></div>
+        <h4>Desired State</h4>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">${desired.target_condition || ''}</p>
+        <div class="tag-list">${(desired.success_criteria||[]).map(c=>`<span class="tag">${c}</span>`).join('')}</div>
+      </div>
+
+      <div class="analysis-card">
+        <div class="card-head"><span class="agent-badge badge-retriever">Retriever</span></div>
+        <h4>Knowledge Base</h4>
+        <p style="font-size:12px;color:var(--ink-soft);line-height:1.6">${(kb.evidence_summary||'').substring(0,300)}${kb.evidence_summary?.length > 300 ? '…' : ''}</p>
+        ${(kb.pitfalls_to_avoid||[]).length ? `<div style="margin-top:10px"><div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--danger);margin-bottom:6px">Pitfalls to Avoid</div><div class="tag-list">${kb.pitfalls_to_avoid.slice(0,3).map(p=>`<span class="tag" style="border-color:rgba(163,45,45,0.2)">${p}</span>`).join('')}</div></div>` : ''}
+      </div>
+
+    </div>
+  </div>`;
+}
+
+function renderRecommendations(recs, evals) {
+  if (!recs.length) return '';
+
+  const evalMap = {};
+  evals.forEach(e => { evalMap[e.idea_id] = e; });
+
+  const rankColors = ['rank-1','rank-2','rank-3'];
+  const rankLabels = ['Top Recommendation','Second Choice','Third Choice'];
+
+  const cards = recs.slice(0,3).map((rec, i) => {
+    const ev = evalMap[rec.idea_id] || {};
+    const score = ev.weighted_score || 0;
+    const scores = ev.scores || {};
+
+    const scoreItems = [
+      {key:'efficacy',label:'Efficacy'},
+      {key:'feasibility',label:'Feasibility'},
+      {key:'financial',label:'Financial'},
+      {key:'desirability',label:'Desirability'},
+      {key:'risk',label:'Risk'},
+      {key:'scalability',label:'Scalability'},
+      {key:'time_to_impact',label:'Speed'},
+      {key:'creativity_value',label:'Innovation'},
+    ];
+
+    const roadmap = rec.implementation_roadmap || {};
+    const risks = rec.risks_and_mitigations || [];
+
+    return `
+    <div class="rec-card ${rankColors[i]}">
+      <div class="rec-header" onclick="toggleRec(this)">
+        <div>
+          <div class="rec-rank">${rankLabels[i]}</div>
+          <div class="rec-title">${rec.title}</div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <span class="priority-pill priority-${(ev.recommendation||'Pilot').toLowerCase()==='scale'?'high':(ev.recommendation||'').toLowerCase()==='pilot'?'medium':'low'}">${ev.recommendation||'Pilot'}</span>
+          </div>
+        </div>
+        <div class="rec-score-badge">
+          <span class="score-num">${Math.round(score)}</span>
+          <span class="score-label">/ 100</span>
+        </div>
+      </div>
+      <div class="rec-body" id="rec-body-${i}">
+        <div class="rec-why">${rec.why_selected || ''}</div>
+
+        <!-- Score breakdown -->
+        <div class="score-grid" style="margin-bottom:20px">
+          ${scoreItems.map(si => {
+            const sc = scores[si.key]?.score || 0;
+            const cls = sc < 50 ? 'low' : sc < 70 ? 'mid' : '';
+            return `<div class="score-item">
+              <div class="score-item-label">${si.label}</div>
+              <div class="score-bar-wrap"><div class="score-bar ${cls}" data-width="${sc}" style="width:0%"></div></div>
+              <div class="score-item-val">${sc}</div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Roadmap -->
+        <h4 style="font-size:13px;font-weight:600;margin-bottom:10px">Implementation Roadmap</h4>
+        <div class="roadmap-grid">
+          <div class="roadmap-phase">
+            <h5>Immediate</h5>
+            <ul>${(roadmap.immediate||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+          </div>
+          <div class="roadmap-phase">
+            <h5>30 Days</h5>
+            <ul>${(roadmap.thirty_days||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+          </div>
+          <div class="roadmap-phase">
+            <h5>90 Days</h5>
+            <ul>${(roadmap.ninety_days||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+          </div>
+        </div>
+
+        <!-- Risks -->
+        ${risks.length ? `
+        <h4 style="font-size:13px;font-weight:600;margin-top:20px;margin-bottom:10px">Risks & Mitigations</h4>
+        <table class="risks-table">
+          <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+          <tbody>${risks.map(r=>`<tr><td>${r.risk}</td><td>${r.mitigation}</td></tr>`).join('')}</tbody>
+        </table>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="section">
+    <div class="section-label">Top Recommendations</div>
+    <div class="rec-cards">${cards}</div>
+  </div>`;
+}
+
+function toggleRec(header) {
+  const body = header.nextElementSibling;
+  body.classList.toggle('open');
+  // Animate score bars when opened
+  setTimeout(() => {
+    body.querySelectorAll('.score-bar').forEach(bar => {
+      bar.style.width = bar.dataset.width + '%';
+    });
+  }, 50);
+}
+
+function renderMetrics(metrics) {
+  if (!metrics.length) return '';
+  return `
+  <div class="section">
+    <div class="section-label">Success Metrics</div>
+    <div class="metrics-grid">
+      ${metrics.slice(0,6).map(m => `
+      <div class="metric-card">
+        <h4>${m.metric}</h4>
+        <div class="target">Target: ${m.target}</div>
+        <div class="cadence">${m.measurement_cadence} · ${m.decision_trigger}</div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderTimeline(tl) {
+  if (!tl.weeks_1_2 && !tl.months_1_3) return '';
+  return `
+  <div class="section">
+    <div class="section-label">Implementation Timeline</div>
+    <div class="roadmap-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="roadmap-phase" style="background:white;border:1px solid var(--rule)">
+        <h5>Weeks 1–2 (Quick Wins)</h5>
+        <ul>${(tl.weeks_1_2||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+      </div>
+      <div class="roadmap-phase" style="background:white;border:1px solid var(--rule)">
+        <h5>Months 1–3 (Core)</h5>
+        <ul>${(tl.months_1_3||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+      </div>
+      <div class="roadmap-phase" style="background:white;border:1px solid var(--rule)">
+        <h5>Months 3–12 (Scale)</h5>
+        <ul>${(tl.months_3_12||[]).map(a=>`<li>${a}</li>`).join('')}</ul>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderNextSteps(steps) {
+  if (!steps.length) return '';
+  return `
+  <div class="section">
+    <div class="section-label">Next Steps</div>
+    <div class="steps-list">
+      ${steps.slice(0,5).map((s,i) => `
+      <div class="step-item">
+        <div class="step-num">${i+1}</div>
+        <div class="step-action"><strong>${s.owner_role}</strong> — ${s.action}</div>
+        <div class="step-meta">
+          <div class="step-timeline">${s.timeline}</div>
+          <span class="priority-pill priority-${s.priority||'medium'}">${s.priority||'medium'}</span>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function renderDecisions(decisions) {
+  if (!decisions.length) return '';
+  return `
+  <div class="section">
+    <div class="section-label">Human Decisions Required</div>
+    <div class="decisions-list">
+      ${decisions.map(d => `
+      <div class="decision-item">
+        <div class="decision-icon">⚑</div>
+        <div>${d}</div>
+      </div>`).join('')}
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:var(--ink-muted);font-style:italic">These items require human judgment and cannot be delegated to the system.</p>
+  </div>`;
+}
+
+function exportJSON() {
+  if (!currentData) return;
+  const blob = new Blob([JSON.stringify(currentData, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `mas-report-${Date.now()}.json`;
+  a.click();
+}
+
+// ── Allow Enter in sidebar to trigger run ─────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key === 'Enter') runAnalysis();
+});
+</script>
+</body>
+</html>
